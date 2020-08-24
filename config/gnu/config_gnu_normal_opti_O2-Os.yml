@@ -1,0 +1,128 @@
+# output directory where the output data will be stored
+# if not given, use the config file name as the output directory.
+outdir:
+
+# turn on debug mode or not
+debug: False
+
+# this is a random seed for debugging
+seed: "TikNib"
+
+# if True, perform training to select features, otherwise, just use the given
+# features.
+do_train: True
+
+# if you specify options, that option will be fixed when selecting true
+# positives and negatives. for example, if you uncomment 'arch', then for a
+# source function (arm_32, O1, gcc-4.9.4, normal), the true positive should have
+# (arm_32, random opti, random compiler, random others)
+fixed_options:
+   - arch
+#   - opti
+   - compiler
+   - others
+
+
+# features
+features:
+  - cfg_size
+  - cfg_avg_degree
+  - cfg_num_degree
+  - cfg_avg_loopintersize
+  - cfg_avg_loopsize
+  - cfg_avg_sccsize
+  - cfg_num_backedges
+  - cfg_num_loops
+  - cfg_num_loops_inter
+  - cfg_num_scc
+  - cfg_sum_loopintersize
+  - cfg_sum_loopsize
+  - cfg_sum_sccsize
+  - cg_num_callees
+  - cg_num_callers
+  - cg_num_imported_callees
+  - cg_num_incalls
+  - cg_num_outcalls
+  - cg_num_imported_calls
+  - inst_avg_abs_dtransfer
+  - inst_avg_abs_arith
+  - inst_avg_abs_ctransfer
+    # dtransfer + misc
+  - inst_num_abs_dtransfer
+    # arith + shift
+  - inst_num_abs_arith
+    # ctransfer + cond ctransfer
+  - inst_num_abs_ctransfer
+  - inst_avg_inst
+  - inst_avg_floatinst
+  - inst_avg_logic
+  - inst_avg_dtransfer
+  - inst_avg_arith
+  - inst_avg_cmp
+  - inst_avg_shift
+  - inst_avg_bitflag
+  - inst_avg_cndctransfer
+  - inst_avg_ctransfer
+  - inst_avg_misc
+  - inst_num_inst
+  - inst_num_floatinst
+  - inst_num_logic
+  - inst_num_dtransfer
+  - inst_num_arith
+  - inst_num_cmp
+  - inst_num_shift
+  - inst_num_bitflag
+  - inst_num_cndctransfer
+  - inst_num_ctransfer
+  - inst_num_misc
+
+src_options:
+  opti:
+    - O2
+  arch:
+    - x86_32
+    - x86_64
+    - arm_32
+    - arm_64
+    - mips_32
+    - mips_64
+    - mipseb_32
+    - mipseb_64
+  compiler:
+    - gcc-4.9.4
+    - gcc-5.5.0
+    - gcc-6.4.0
+    - gcc-7.3.0
+    - gcc-8.2.0
+    - clang-4.0
+    - clang-5.0
+    - clang-6.0
+    - clang-7.0
+  others:
+    - normal
+
+dst_options:
+  opti:
+    - Os
+  arch:
+    - x86_32
+    - x86_64
+    - arm_32
+    - arm_64
+    - mips_32
+    - mips_64
+    - mipseb_32
+    - mipseb_64
+  compiler:
+    - gcc-4.9.4
+    - gcc-5.5.0
+    - gcc-6.4.0
+    - gcc-7.3.0
+    - gcc-8.2.0
+    - clang-4.0
+    - clang-5.0
+    - clang-6.0
+    - clang-7.0
+  others:
+    - normal
+

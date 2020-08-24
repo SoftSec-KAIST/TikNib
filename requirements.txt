@@ -1,0 +1,7 @@
+coloredlogs==6.0
+capstone==4.0.0rc1
+numpy==1.11.0
+python_ctags3==1.2.4
+networkx==2.1
+scikit_learn==0.23.2
+PyYAML==5.3.1
