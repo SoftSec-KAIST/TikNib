@@ -89,7 +89,7 @@ This step takes the most time. Please configure the `chunk_size` for parallel
 processing.
 
 ```bash
-$ python3 helper/do_idascript.py \
+$ python helper/do_idascript.py \
     --idapath "/home/dongkwan/.tools/ida-6.95" \
     --idc "tiknib/ida/fetch_funcdata.py" \
     --input_list "example/input_list_find.txt" \
@@ -101,31 +101,76 @@ Additionally, you can use this script to run any idascript in parallel.
 ### 2. Extract function type information for type features.
 
 ```bash
-python3 helper/extract_functype.py \
-  --source_list "example/source_list.txt" \
-  --input_list "example/input_list_find.txt" \
-  --ctags_dir "data/ctags" \
-  --threshold 1
+$ python helper/extract_functype.py \
+    --source_list "example/source_list.txt" \
+    --input_list "example/input_list_find.txt" \
+    --ctags_dir "data/ctags" \
+    --threshold 1
 ```
 
 ### 3. Extract numeric presemantic features and type features.
 
 ```bash
-python3 helper/extract_features.py \
-  --input_list "example/input_list_find.txt" \
-  --threshold 1
+$ python helper/extract_features.py \
+    --input_list "example/input_list_find.txt" \
+    --threshold 1
 ```
 
 ### 4. Evaluate target configuration
 
 ```bash
-python3 helper/test_roc.py \
-  --input_list "example/input_list_find.txt" \
-  --config "config/gnu/config_gnu_normal_all.yml"
+$ python helper/test_roc.py \
+    --input_list "example/input_list_find.txt" \
+    --config "config/gnu/config_gnu_normal_all.yml"
 ```
 
 For more details, please check `example/`. All configuration files for our
 experiments are in `config/`.
+
+# Issues
+
+### Tested environment
+We ran all our experiments on a server equipped with four Intel Xeon E7-8867v4
+2.40 GHz CPUs (total 144 cores), 896 GB DDR4 RAM, and 4 TB SSD. We setup Ubuntu
+16.04 with IDA Pro v6.95 on the server.
+
+We will make it run on IDA Pro v7.5 soon.
+
+### Tested python version
+- Python 3.8.0
+
+### Running example
+The time spent for running `example/example.sh` took as below.
+
+- Processing IDA analysis: 1384 s
+- Extracting function types: 102 s
+- Extracting features: 61 s
+- Training: 31 s
+- Testing: 0.8 s
+
+You can obtain below information after running `test_roc.py` in the example.
+Note that below is just one example.
+
+```
+Features:
+inst_num_abs_ctransfer (inter): 0.4749
+inst_num_cmp (inter): 0.5500
+inst_num_cndctransfer (inter): 0.5906
+...
+...
+...
+Avg \# of selected features: 13.0000
+Avg. TP-TN Gap: 0.3866
+Avg. TP-TN Gap of Grey: 0.4699
+Avg. ROC: 0.9424
+Std. of ROC: 0.0056
+Avg. AP: 0.9453
+Std. of AP: 0.0058
+Avg. Train time: 30.4179
+AVg. Test time: 1.4817
+Avg. # of Train Pairs: 155437
+Avg. # of Test Pairs: 17270
+```
 
 # Authors
 This project has been conducted by the below authors at KAIST.

@@ -19,6 +19,6 @@ python3 helper/extract_features.py \
     --threshold 1
 
 echo "Testing features ..."
-python3 test_roc.py \
+python3 helper/test_roc.py \
     --input_list "example/input_list_find.txt" \
     --config "config/gnu/config_gnu_normal_all.yml"
