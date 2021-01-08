@@ -97,6 +97,10 @@ class IDAScript:
         else:
             ida = self.idapath + "/idal64"
 
+        # >= IDA Pro v7.4 use "idat" instead of "idal"
+        if not os.path.exists(ida):
+            ida = ida.replace('idal', 'idat')
+
         # Setup command line arguments
         path = [ida, "-A", "-S{}".format(idc_args)]
         if self.log or self.stdout:

@@ -85,8 +85,15 @@ For building the cross-compiling environment and dataset, please check
 
 ### 1. Run IDA Pro to extract preliminary data for each functions.
 
-This step takes the most time. Please configure the `chunk_size` for parallel
-processing.
+**This step takes the most time.**
+
+This step fetches preliminary data for the functions in each binary and stores
+the data in a `pickle` format. For a given binary, it generates a pickle file on
+the same path with a suffix of `.pickle`. Please configure the `chunk_size` for
+parallel processing.
+
+For IDA Pro v6.95 (original version in the paper), use
+`tiknib/ida/fetch_funcdata.py`.
 
 ```bash
 $ python helper/do_idascript.py \
@@ -96,9 +103,24 @@ $ python helper/do_idascript.py \
     --log
 ```
 
-Additionally, you can use this script to run any idascript in parallel.
+For IDA Pro v7.5, use `tiknib/ida/fetch_funcdata_v7.5.py`.
+
+```bash
+$ python helper/do_idascript.py \
+    --idapath "/home/dongkwan/.tools/ida-v7.5" \
+    --idc "tiknib/ida/fetch_funcdata_v7.5.py" \
+    --input_list "example/input_list_find.txt" \
+    --log
+```
+
+Additionally, **you can use this script to run any idascript for numerous
+binaries in parallel.**
 
 ### 2. Extract function type information for type features.
+
+By utilizing `ctags`, this will extract type information. This will add
+`abstract_args_type` and `abstract_ret_type` into the previously created
+`.pickle` file.
 
 ```bash
 $ python helper/extract_functype.py \
@@ -108,12 +130,119 @@ $ python helper/extract_functype.py \
     --threshold 1
 ```
 
+For example, for a function type of `mode_change *__usercall@<rax>(const char
+*ref_file@<rsi>)` extracted from IDA Pro, it will follow the ctags and
+recognizes `mode_change` represents for a custom `struct`. Consequently, it adds
+new data as below.
+
+``` python
+    'abstract_args_type': ['char *'],
+    'abstract_ret_type': 'struct *',
+```
+
 ### 3. Extract numeric presemantic features and type features.
+
+This extracts numeric presemantic features as stated above.
 
 ```bash
 $ python helper/extract_features.py \
     --input_list "example/input_list_find.txt" \
     --threshold 1
+```
+
+The extracted features will be stored in each `.pickle` file. Below is an
+example showing a part of extracted features for the `mode_create_from_ref`
+function in the `find` binary in `findutils`.
+
+```python
+{
+    'package': 'findutils-4.6.0',
+    'bin_name': 'find.elf',
+    'name': 'mode_create_from_ref',
+    'arch': 'x86_64',
+    'opti': 'O3',
+    'compiler': 'gcc-8.2.0',
+    'others': 'normal',
+    'func_type': 'mode_change *__usercall@<rax>(const char *ref_file@<rsi>)',
+    'abstract_args_type': ['char *'],
+    'ret_type': 'mode_change *',
+    'abstract_ret_type': 'struct *',
+    'cfg': [(0, 1), (0, 2), (1, 2)],
+    'cfg_size': 3,
+    'feature': {
+        'cfg_avg_degree': 2,
+        'cfg_avg_indegree': 1,
+        'cfg_avg_loopintersize': 0,
+        'cfg_avg_loopsize': 0,
+        'cfg_avg_outdegree': 1,
+        'cfg_avg_sccsize': 1,
+        'cfg_max_depth': 2,
+        'cfg_max_width': 2,
+        'cfg_num_backedges': 0,
+        'cfg_num_bfs_edges': 2,
+        'cfg_num_degree': 6,
+        'cfg_num_indegree': 3,
+        'cfg_num_loops': 0,
+        'cfg_num_loops_inter': 0,
+        'cfg_num_outdegree': 3,
+        'cfg_num_scc': 3,
+        'cfg_size': 3,
+        'cfg_sum_loopintersize': 0,
+        'cfg_sum_loopsize': 0,
+        'cfg_sum_sccsize': 3,
+        'cg_num_callees': 2,
+        'cg_num_callers': 0,
+        'cg_num_imported_callees': 1,
+        'cg_num_imported_calls': 1,
+        'cg_num_incalls': 0,
+        'cg_num_outcalls': 2,
+        'data_avg_abs_strings': 0,
+        'data_avg_arg_type': 2,
+        'data_avg_consts': 144,
+        'data_avg_strlen': 0,
+        'data_mul_arg_type': 2,
+        'data_num_args': 1,
+        'data_num_consts': 1,
+        'data_num_strings': 0,
+        'data_ret_type': 2,
+        'data_sum_abs_strings': 0,
+        'data_sum_abs_strings_seq': 0,
+        'data_sum_arg_type': 2,
+        'data_sum_arg_type_seq': 2,
+        'data_sum_consts_seq': 144,
+        'data_sum_strlen': 0,
+        'data_sum_strlen_seq': 0,
+        'inst_avg_abs_arith': 0.6666666666666666,
+        'inst_avg_abs_ctransfer': 1.3333333333333333,
+        'inst_avg_abs_dtransfer': 4.666666666666667,
+        'inst_avg_arith': 0.6666666666666666,
+        'inst_avg_bitflag': 0.3333333333333333,
+        'inst_avg_cmp': 0.3333333333333333,
+        'inst_avg_cndctransfer': 0.3333333333333333,
+        'inst_avg_ctransfer': 1.0,
+        'inst_avg_dtransfer': 4.666666666666667,
+        'inst_avg_grp_call': 0.6666666666666666,
+        'inst_avg_grp_jump': 0.3333333333333333,
+        'inst_avg_grp_ret': 0.3333333333333333,
+        'inst_avg_logic': 0.3333333333333333,
+        'inst_avg_total': 7.333333333333333,
+        'inst_num_abs_arith': 2.0,
+        'inst_num_abs_ctransfer': 4.0,
+        'inst_num_abs_dtransfer': 14.0,
+        'inst_num_arith': 2.0,
+        'inst_num_bitflag': 1.0,
+        'inst_num_cmp': 1.0,
+        'inst_num_cndctransfer': 1.0,
+        'inst_num_ctransfer': 3.0,
+        'inst_num_dtransfer': 14.0,
+        'inst_num_grp_call': 2.0,
+        'inst_num_grp_jump': 1.0,
+        'inst_num_grp_ret': 1.0,
+        'inst_num_logic': 1.0,
+        'inst_num_total': 22
+    },
+    ...
+}
 ```
 
 ### 4. Evaluate target configuration
@@ -125,22 +254,8 @@ $ python helper/test_roc.py \
 ```
 
 For more details, please check `example/`. All configuration files for our
-experiments are in `config/`.
-
-# Issues
-
-### Tested environment
-We ran all our experiments on a server equipped with four Intel Xeon E7-8867v4
-2.40 GHz CPUs (total 144 cores), 896 GB DDR4 RAM, and 4 TB SSD. We setup Ubuntu
-16.04 with IDA Pro v6.95 on the server.
-
-We will make it run on IDA Pro v7.5 soon.
-
-### Tested python version
-- Python 3.8.0
-
-### Running example
-The time spent for running `example/example.sh` took as below.
+experiments are in `config/`. The time spent for running `example/example.sh`
+took as below.
 
 - Processing IDA analysis: 1384 s
 - Extracting function types: 102 s
@@ -148,8 +263,7 @@ The time spent for running `example/example.sh` took as below.
 - Training: 31 s
 - Testing: 0.8 s
 
-You can obtain below information after running `test_roc.py` in the example.
-Note that below is just one example.
+You can obtain below information after running `test_roc.py`.
 
 ```
 Features:
@@ -171,6 +285,15 @@ AVg. Test time: 1.4817
 Avg. # of Train Pairs: 155437
 Avg. # of Test Pairs: 17270
 ```
+
+# Issues
+
+### Tested environment
+We ran all our experiments on a server equipped with four Intel Xeon E7-8867v4
+2.40 GHz CPUs (total 144 cores), 896 GB DDR4 RAM, and 4 TB SSD. We setup Ubuntu
+16.04 with IDA Pro v6.95 on the server.
+
+Currently, it works on IDA Pro v7.5 and Python 3.8.0 on the system.
 
 # Authors
 This project has been conducted by the below authors at KAIST.
