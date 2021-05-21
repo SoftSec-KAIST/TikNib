@@ -3,7 +3,7 @@ import re
 import ctags
 from ctags import CTags, TagEntry
 
-from tiknib.utils import system, do_multiprocess
+from tiknib.utils import system
 
 import logging
 
@@ -159,7 +159,10 @@ def update_type_map(type_map, ctags_fname):
     status = tag.first(entry)
     while status:
         name = entry["name"].decode()
-        kind = entry["kind"].decode()
+        try:
+            kind = entry["kind"].decode()
+        except:
+            import pdb; pdb.set_trace()
         typeref = (entry[b"typeref"] or b"").decode()
         pattern = entry["pattern"].decode()
 
@@ -254,17 +257,18 @@ def create_ctags(source_list, ctags_dir):
     with open(source_list, "r") as f:
         lines = f.read().splitlines()
 
+    # TODO: extract only dependent source files with "gcc -M"
     for dir_name in lines:
         basename = os.path.basename(dir_name.strip())
         if os.path.exists(os.path.join(ctags_dir, basename + ".tags")):
             continue
 
-        cmd = 'ctags -f "{0}/{1}.tags" --fields=afmikKlnsStz -R "{2}"'
+        cmd = 'ctags -f "{0}/{1}.tags" --languages=c,c++ --c-kinds=+p --c++-kinds=+p --fields=afmikKlnsStz --extra=+q -R "{2}"'
         cmd = cmd.format(ctags_dir, basename, dir_name)
         system(cmd)
 
     if not os.path.exists(os.path.join(ctags_dir, "include.tags")):
-        cmd = 'ctags -f "{0}/include.tags" --fields=afmikKlnsStz -R "{1}"'
+        cmd = 'ctags -f "{0}/include.tags" --languages=c,c++ --c-kinds=+p --c++-kinds=+p --fields=afmikKlnsStz --extra=+q -R "{1}"'
         cmd = cmd.format(ctags_dir, "/usr/include/")
         system(cmd)
 

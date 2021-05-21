@@ -90,7 +90,7 @@ for fname in fnames:
         continue
     config_fname = os.path.join("config", "gnu", config_fname + ".yml")
     with open(config_fname, "r") as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     config["fname"] = config_fname
 
     # setup output directory

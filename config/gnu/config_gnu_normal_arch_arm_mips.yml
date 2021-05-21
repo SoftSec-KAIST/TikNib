@@ -53,7 +53,7 @@ features:
   - inst_num_abs_arith
     # ctransfer + cond ctransfer
   - inst_num_abs_ctransfer
-  - inst_avg_inst
+  - inst_avg_total
   - inst_avg_floatinst
   - inst_avg_logic
   - inst_avg_dtransfer
@@ -64,7 +64,7 @@ features:
   - inst_avg_cndctransfer
   - inst_avg_ctransfer
   - inst_avg_misc
-  - inst_num_inst
+  - inst_num_total
   - inst_num_floatinst
   - inst_num_logic
   - inst_num_dtransfer

@@ -52,5 +52,5 @@ def make_abstract_number(s):
     if len(PRIMES) < len(s) - 1:
         PRIME_MAX *= 100
         PRIMES = gen_primes(PRIME_MAX)
-        return make_number(s)
+        return make_abstract_number(s)
     return PRIMES[len(s) - 1].item(0)

@@ -19,6 +19,7 @@ from tiknib.utils import do_multiprocess, parse_fname
 from tiknib.utils import load_func_data
 from tiknib.utils import flatten
 from tiknib.utils import store_cache
+from get_roc_graph import plot_roc_all
 
 import logging
 import coloredlogs
@@ -38,7 +39,8 @@ def get_binary(func_key):
 
 
 def get_func(func_key):
-    return func_key[2]
+    #return (func_key[2]) # use name
+    return (func_key[2], func_key[3]) # use source file, source line
 
 
 def get_opti(option_key):
@@ -141,7 +143,8 @@ def calc_metric_helper(func_key):
         while True:
             func_tn_key = random.choice(g_func_keys)
             # Since difference binaries may have an equal function, pick a
-            # function having a different name for precise comparison
+            # function having a different source file name and line number for
+            # precise comparison
             if get_func(func_tn_key) != get_func(func_key):
                 if dst_opt in g_funcs[func_tn_key]:
                     tn_func = g_funcs[func_tn_key][dst_opt]
@@ -234,6 +237,23 @@ def calc_results(tps, tns, feature_indices):
     return calc_roc(X, y), calc_ap(X, y)
 
 
+# this function returns (fpr, tpr, tresholds)
+def get_roc_curve(tps, tns, feature_indices):
+    feature_indices = np.array(feature_indices)
+    num_data = len(tps)
+    num_features = len(feature_indices)
+    X = np.concatenate(
+        [
+            relative_distance(tps, feature_indices),
+            relative_distance(tns, feature_indices),
+        ]
+    )
+    y = np.concatenate(
+        [np.ones(num_data, dtype=np.bool), np.zeros(num_data, dtype=np.bool)]
+    )
+    return roc_curve(y, X, pos_label=1)
+
+
 # preprocess possible target options for src option
 def load_options(config):
     options = ["opti", "arch", "compiler", "others"]
@@ -292,14 +312,19 @@ def load_options(config):
     return options, dst_options_filtered
 
 
-def group_binaries(input_list):
+def group_binaries(input_list, options):
     with open(input_list, "r") as f:
         bin_paths = f.read().splitlines()
     bins = {}
     packages = set()
+    check_options = set(options)
     for bin_path in bin_paths:
         package, compiler, arch, opti, bin_name = parse_fname(bin_path)
         others = parse_other_options(bin_path)
+        option_key = (opti, arch, compiler, others)
+        # Filter unnecessary binaries to speed up testing.
+        if option_key not in check_options:
+            continue
         key = (package, bin_name)
         if key not in bins:
             bins[key] = []
@@ -309,45 +334,55 @@ def group_binaries(input_list):
         "%d packages, %d unique binaries, total %d binaries",
         len(packages),
         len(bins),
-        len(bin_paths),
+        sum(map(len, bins.values()))
     )
     return bins, packages
 
 
 def load_func_features_helper(bin_paths):
+    # TODO: handle suffix correctly.
     # returns {function_key: {option_idx: np.array(feature_values)}}
     global g_options, g_features
     func_features = {}
     num_features = len(g_features)
     optionidx_map = get_optionidx_map(g_options)
+    # This counts compiler-generated duplicates (.isra, .part, .cold)
+    duplicate_cnt = 0
     for bin_path in bin_paths:
         package, compiler, arch, opti, bin_name = parse_fname(bin_path)
         others = parse_other_options(bin_path)
-        _, func_data_list = load_func_data(bin_path)
+        _, func_data_list = load_func_data(bin_path, suffix="filtered2")
         for func_data in func_data_list:
             # Use only .text functions for testing
+            # These are already filtered in filter_functions.py
             if func_data["seg_name"] != ".text":
                 continue
             if func_data["name"].startswith("sub_"):
                 continue
-            func_key = (package, bin_name, func_data["name"])
+            #func_key = (package, bin_name, func_data["name"])
+            func_key = (package, bin_name, func_data["src_file"], func_data["src_line"])
             option_key = (opti, arch, compiler, others)
             if option_key not in optionidx_map:
                 continue
             option_idx = optionidx_map[option_key]
             if func_key not in func_features:
                 func_features[func_key] = {}
+            # in the below condition by using option_key instead of option_idx,
+            # we can filter duplicate functions and only leave the last one.
+            # TODO: move this filtering to filter_functions.py
             if option_key not in func_features[func_key]:
                 func_features[func_key][option_idx] = np.zeros(
                     num_features, dtype=np.float64
                 )
+            else:
+                duplicate_cnt += 1
             for feature_idx, feature in enumerate(g_features):
                 if feature not in func_data["feature"]:
                     continue
                 val = func_data["feature"][feature]
                 func_features[func_key][option_idx][feature_idx] = val
 
-    return func_features
+    return func_features, duplicate_cnt
 
 
 # inevitably use globals since it is fast.
@@ -358,7 +393,7 @@ def _init_load(options, features):
 
 
 def load_func_features(input_list, options, features):
-    grouped_bins, packages = group_binaries(input_list)
+    grouped_bins, packages = group_binaries(input_list, options)
     func_features_list = do_multiprocess(
         load_func_features_helper,
         grouped_bins.values(),
@@ -368,15 +403,20 @@ def load_func_features(input_list, options, features):
         initargs=(options, features),
     )
     funcs = {}
-    for func_features in func_features_list:
+    duplicate_cnt = 0
+    for func_features, dup_cnt in func_features_list:
         funcs.update(func_features)
+        duplicate_cnt += dup_cnt
+    num_funcs = sum([len(x) for x in funcs.values()])
+    logger.info("%d functions loaded.", num_funcs)
+    logger.info("%d compiler-generated duplicates.", duplicate_cnt)
     return funcs
 
 
 def do_test(opts):
     config_fname = opts.config
     with open(config_fname, "r") as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     config["fname"] = config_fname
 
     # setup output directory
@@ -400,15 +440,14 @@ def do_test(opts):
     t0 = time.time()
     logger.info("Feature loading ...")
     funcs = load_func_features(opts.input_list, options, features)
+    num_funcs = sum([len(x) for x in funcs.values()])
     logger.info(
-        "%d functions (%d unique).", sum([len(x) for x in funcs.values()]), len(funcs)
+        "%d functions (%d unique).", num_funcs, len(funcs)
     )
     logger.info("Feature loading done. (%0.3fs)", time.time() - t0)
 
     num_folds = 10
     kf = KFold(n_splits=num_folds)
-    # We revised the code and now NUM_TRAIN_LIMIT is not used.
-    # NUM_TRAIN_LIMIT = 2000000
     assert len(funcs) > num_folds
 
     # ===============================================
@@ -423,19 +462,35 @@ def do_test(opts):
     data_all = []
     for trial_idx, (train_func_keys, test_func_keys) in enumerate(kf.split(func_keys)):
         logger.info("[+] TRIAL %d/%d ================", trial_idx + 1, num_folds)
-        # We revised the code and now NUM_TRAIN_LIMIT is not used.
-        #        # If there exist too many functions it takes too much time.
-        #        # Therefore, we take 10% of train set.
-        #        if len(train_keys) > NUM_TRAIN_LIMIT:
-        #            train_keys = random.sample(train_keys, NUM_TRAIN_LIMIT)
-
         train_func_keys = [func_keys[i] for i in train_func_keys]
+        #train_funcs = {key: funcs[key] for key in train_func_keys}
+        # If there exist too many functions it takes too much time.
+        # Therefore, we take 10% of train set.
+        num_train_funcs = 0
+        train_funcs = {}
+        remove_keys = []
+        for idx, key in enumerate(train_func_keys):
+            train_funcs[key] = funcs[key]
+            num_train_funcs += len(funcs[key])
+            if num_train_funcs > opts.train_funcs_limit:
+                logging.info(
+                    "Training functions over limit: %d",
+                    opts.train_funcs_limit,
+                )
+                break
+        if idx+1 < len(train_func_keys):
+            train_func_keys = train_func_keys[:idx+1]
+
         train_funcs = {key: funcs[key] for key in train_func_keys}
         test_func_keys = [func_keys[i] for i in test_func_keys]
         test_funcs = {key: funcs[key] for key in test_func_keys}
+        num_train_funcs = sum([len(x) for x in train_funcs.values()])
+        num_test_funcs = sum([len(x) for x in test_funcs.values()])
         logging.info(
-            "Train: %d unique funcs, Test: %d unique funcs",
+            "Train: %d funcs (%d unique), Test: %d funcs (%d unique)",
+            num_train_funcs,
             len(train_func_keys),
+            num_test_funcs,
             len(test_func_keys),
         )
 
@@ -484,32 +539,24 @@ def do_test(opts):
         )
         logger.info("testing done. (%0.3fs)", test_time)
 
+        fpr, tpr, thresholds = get_roc_curve(test_tps, test_tns, selected_feature_indices)
+
         # analyze features that fits our analysis metric
         data = [
-            train_func_keys,
-            train_tps,
-            train_tns,
-            train_opts,
-            train_roc,
-            train_ap,
-            train_time,
-            test_func_keys,
-            test_tps,
-            test_tns,
-            test_opts,
-            test_roc,
-            test_ap,
-            test_time,
-            features,
-            selected_feature_indices,
+            (features, selected_feature_indices),
+            (train_func_keys, train_tps, train_tns, train_opts, train_roc,
+             train_ap, train_time),
+            (test_func_keys, test_tps, test_tns, test_opts, test_roc, test_ap,
+             test_time),
+            (fpr, tpr, thresholds),
         ]
         store_cache(data, fname="data-{}".format(trial_idx), cache_dir=outdir)
         data_all.append(data)
 
-    analyze_results(data_all)
+    analyze_results(config, data_all)
 
 
-def analyze_results(data_all):
+def analyze_results(config, data_all):
     rocs = []
     aps = []
     train_times = []
@@ -521,19 +568,19 @@ def analyze_results(data_all):
     features_union = set()
     tptn_gaps = []
     for data in data_all:
-        feature_indices = data[15]
+        feature_data, train_data, test_data, test_roc_data = data
+        features, feature_indices = feature_data
+        fpr, tpr, thresholds = test_roc_data
         if not features_inter:
             features_inter = set(feature_indices)
         else:
             features_inter.intersection_update(feature_indices)
         features_union.update(feature_indices)
 
-    for data in data_all:
-        train_func_keys, train_tps, train_tns = data[:3]
-        train_roc, train_ap, train_time = data[4:7]
-        test_func_keys, test_tps, test_tns = data[7:10]
-        test_roc, test_ap, test_time = data[11:14]
-        features, feature_indices = data[14:16]
+        train_func_keys, train_tps, train_tns = train_data[:3]
+        train_roc, train_ap, train_time = train_data[4:7]
+        test_func_keys, test_tps, test_tns = test_data[:3]
+        test_roc, test_ap, test_time = test_data[4:7]
 
         rocs.append(test_roc)
         aps.append(test_ap)
@@ -563,7 +610,7 @@ def analyze_results(data_all):
     logger.info("Avg. AP: %0.4f", np.mean(aps))
     logger.info("Std. of AP: %0.4f", np.std(aps))
     logger.info("Avg. Train time: %0.4f", np.mean(train_times))
-    logger.info("AVg. Test time: %0.4f", np.mean(test_times))
+    logger.info("Avg. Test time: %0.4f", np.mean(test_times))
     logger.info("Avg. # of Train Pairs: %d", np.mean(num_train_pairs))
     logger.info("Avg. # of Test Pairs: %d", np.mean(num_test_pairs))
 
@@ -577,17 +624,19 @@ if __name__ == "__main__":
         help="give config file (ex) config/config_default.yml",
     )
     op.add_option(
-        "--type",
-        action="store_true",
-        dest="type",
-        help="test type features after loading features",
-    )
-    op.add_option(
         "--input_list",
         type="str",
         action="store",
         dest="input_list",
         help="a file containing a list of input binaries",
+    )
+    op.add_option(
+        "--train_funcs_limit",
+        type="int",
+        action="store",
+        dest="train_funcs_limit",
+        default=200000,
+        help="a number to limit the number of functions in training",
     )
     (opts, args) = op.parse_args()
 

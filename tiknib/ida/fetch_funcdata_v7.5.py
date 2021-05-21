@@ -179,7 +179,10 @@ def main():
         imported_callees = []
         if func_name in callee_map:
             imported_callees = list(
-                filter(lambda x: get_segm_name(x[1]) != get_segm_name(addr), callee_map[func_name])
+                filter(
+                    lambda x: get_segm_name(x[1]) != get_segm_name(addr),
+                    callee_map[func_name],
+                )
             )
 
         # Get type information from IDA

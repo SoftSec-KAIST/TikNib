@@ -99,10 +99,10 @@ class IDAScript:
 
         # >= IDA Pro v7.4 use "idat" instead of "idal"
         if not os.path.exists(ida):
-            ida = ida.replace('idal', 'idat')
+            ida = ida.replace("idal", "idat")
 
         # Setup command line arguments
-        path = [ida, "-A", "-S{}".format(idc_args)]
+        path = [ida, "-A", '-S"{}"'.format(idc_args)]
         if self.log or self.stdout:
             fd, tmp_fname = tempfile.mkstemp()
             os.close(fd)

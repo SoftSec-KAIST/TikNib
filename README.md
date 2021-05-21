@@ -15,11 +15,11 @@ TikNib currently focuses on function-level similarity analysis, which is a
 fundamental unit of binary analysis.
 
 For more details, please check [our
-paper](https://0xdkay.me/pub/2020/kim-arxiv2020.pdf).
+paper](https://arxiv.org/abs/2011.10749).
 
 # Dataset
 For building the cross-compiling environment and dataset, please check
-[here](https://github.com/SoftSec-KAIST/BinKit).
+[BinKit](https://github.com/SoftSec-KAIST/BinKit).
 
 # Supported features
 
@@ -82,6 +82,34 @@ For building the cross-compiling environment and dataset, please check
 - data_ret_type
 
 # How to use
+TikNib has two parts: ground truth building and feature extraction.
+
+## Scripts Used for Our Evaluation
+
+To see the scripts used in our evaluation, please check the shell scripts under
+[/helper](/helper/). For example, [run_gnu.sh](/helper/run_gnu.sh) builds ground
+truth and extracts features for GNU packages. Then,
+[run_gnu_roc.sh](/helper/run_gnu_roc.sh) computes the ROC AUC for the results.
+You have to run these scripts sequentially as the second one utilizes the cached
+results obtained from the first one.
+We also added top-k results for the OpenSSL package, which is described in
+Sec 5.3 in [our paper](https://arxiv.org/abs/2011.10749).
+Please check [run_openssl_roc.sh](/helper/run_openssl_roc.sh) and
+[run_openssl_roc_topk.sh](/helper/run_openssl_roc_topk.sh) in the same
+directory, of which should also be executed sequentially.
+
+## Building Ground Truth
+TikNib includes scripts for building ground truth for evaluation, as described
+in Sec 3.2 in [our paper](https://arxiv.org/abs/2011.10749). After compiling the
+datasets using [BinKit](https://github.com/SoftSec-KAIST/BinKit), we build
+ground truth as below.
+
+Given two functions of the same name, we check if they originated from the same
+source files and if their line numbers are the same. We also check if both
+functions are from the same package and from the binaries of the same name to
+confirm their equivalence. Based on these criteria we conducted several steps to
+build ground truth and clean the datasets. For more details, please check [our
+paper](https://arxiv.org/abs/2011.10749).
 
 ### 1. Run IDA Pro to extract preliminary data for each functions.
 
@@ -116,8 +144,48 @@ $ python helper/do_idascript.py \
 Additionally, **you can use this script to run any idascript for numerous
 binaries in parallel.**
 
-### 2. Extract function type information for type features.
 
+### 2. Extract source file names and line numbers to build ground truth.
+This extracts source file name and line number by parsing the debugging
+information in a given binary. The binary must have been compiled with
+the `-g` option.
+
+```bash
+$ python helper/extract_lineno.py \
+    --input_list "example/input_list_find.txt" \
+    --threshold 1
+```
+
+### 3. Filter functions.
+This filters functions by checking the source file name and line number.
+This removes compiler intrinsic functions and duplicate functions spread
+over multiple binaries within the same package.
+
+```bash
+$ python helper/filter_functions.py \
+    --input_list "example/input_list_find.txt" \
+    --threshold 1
+```
+
+### (Optional) 4. Counting the number of functions.
+This counts the number of functions and generates a graph of that function
+on the same path of `input_list`. This also prints the numbers separated
+by `','`. In the below example, a pdf file containing the graph will be
+created in `example/input_list_find.pdf`
+
+```bash
+$ python helper/count_functions.py \
+    --input_list "example/input_list_find.txt" \
+    --threshold 1
+```
+
+
+## Extracting Features
+
+### 1. Run IDA Pro to extract preliminary data for each functions.
+This is the exact same step as the one described above.
+
+### 2. Extract function type information for type features.
 By utilizing `ctags`, this will extract type information. This will add
 `abstract_args_type` and `abstract_ret_type` into the previously created
 `.pickle` file.
@@ -250,6 +318,7 @@ function in the `find` binary in `findutils`.
 ```bash
 $ python helper/test_roc.py \
     --input_list "example/input_list_find.txt" \
+    --train_funcs_limit 200000 \
     --config "config/gnu/config_gnu_normal_all.yml"
 ```
 
@@ -293,7 +362,7 @@ We ran all our experiments on a server equipped with four Intel Xeon E7-8867v4
 2.40 GHz CPUs (total 144 cores), 896 GB DDR4 RAM, and 4 TB SSD. We setup Ubuntu
 16.04 with IDA Pro v6.95 on the server.
 
-Currently, it works on IDA Pro v7.5 and Python 3.8.0 on the system.
+Currently, it works on IDA Pro v6.95 and v7.5 with Python 3.8.0 on the system.
 
 # Authors
 This project has been conducted by the below authors at KAIST.

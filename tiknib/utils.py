@@ -44,6 +44,15 @@ def parse_fname(bin_path):
     return matches
 
 
+def parse_source_path(src_path):
+    matches = re.search(RESTR, src_path)
+    if not matches:
+        return ""
+    src_file = matches.groups()[-1]
+    src_file = src_file[src_file.index('/')+1:]
+    return os.path.relpath(src_file)
+
+
 # statistics mean function cannot handle the empty list
 def mean(l):
     return stat_mean(l or [0])
@@ -304,15 +313,15 @@ def init_idc():
 
 
 # Belows are functions for processing function data
-def load_func_data(bin_name):
-    data_name = bin_name + ".pickle"
+def load_func_data(bin_name, suffix=""):
+    data_name = bin_name + suffix + ".pickle"
     with open(data_name, "rb") as f:
         func_data_list = pickle.load(f)
     return bin_name, func_data_list
 
 
-def store_func_data(bin_name, func_data_list):
-    data_name = bin_name + ".pickle"
+def store_func_data(bin_name, func_data_list, suffix=""):
+    data_name = bin_name + suffix + ".pickle"
     with open(data_name, "wb") as f:
         pickle.dump(func_data_list, f)
 

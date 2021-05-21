@@ -1,7 +1,9 @@
-numpy==1.19.4
+matplotlib==3.4.2
 capstone==4.0.0
-coloredlogs==6.0
-networkx==2.5
+numpy==1.19.4
 python_ctags3==1.5.0
-PyYAML==5.3.1
-scikit_learn==0.23.2
+networkx==2.5
+coloredlogs==6.0
+pyelftools==0.27
+PyYAML==5.4.1
+scikit_learn==0.24.2

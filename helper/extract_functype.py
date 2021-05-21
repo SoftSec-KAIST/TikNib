@@ -20,8 +20,9 @@ coloredlogs.install(level=logging.INFO)
 
 
 def extract_func_types(args):
+    # TODO: handle suffix correctly.
     type_map, bin_name = args
-    bin_name, func_data_list = load_func_data(bin_name)
+    bin_name, func_data_list = load_func_data(bin_name, suffix="filtered")
     for func in func_data_list:
         ret_type = fetch_type(type_map, func["ret_type"])
         arg_types = []
@@ -29,7 +30,7 @@ def extract_func_types(args):
             arg_types.append(fetch_type(type_map, t))
         func["abstract_args_type"] = arg_types
         func["abstract_ret_type"] = ret_type
-    store_func_data(bin_name, func_data_list)
+    store_func_data(bin_name, func_data_list, suffix="filtered")
 
 
 if __name__ == "__main__":

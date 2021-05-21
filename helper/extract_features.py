@@ -20,15 +20,23 @@ coloredlogs.install(level=logging.INFO)
 # TODO: add caching information to skip redundant processing.
 def extract_features(bin_name):
     global feature_funcs
-    bin_name, func_data_list = load_func_data(bin_name)
+    # TODO: handle suffix correctly.
+    bin_name, func_data_list = load_func_data(bin_name, suffix="filtered")
     fm = FeatureManager()
     for func_data in func_data_list:
-        features = fm.get_all(func_data)
+        try:
+            features = fm.get_all(func_data)
+        except:
+            import traceback
+            traceback.print_exc()
+            print("Error: ", bin_name)
+            return
         func_data["feature"] = features
-    store_func_data(bin_name, func_data_list)
+    store_func_data(bin_name, func_data_list, suffix="filtered2")
 
 
 if __name__ == "__main__":
+    import multiprocessing
     op = OptionParser()
     op.add_option(
         "--input_list",
@@ -51,7 +59,15 @@ if __name__ == "__main__":
         action="store",
         dest="chunk_size",
         default=1,
-        help="number of binaries to process in each process",
+        help="number of binaries to handle in each process",
+    )
+    op.add_option(
+        "--pool_size",
+        type="int",
+        action="store",
+        dest="pool_size",
+        default=multiprocessing.cpu_count(),
+        help="number of processes",
     )
     op.add_option("--debug", action="store_true", dest="debug")
     (opts, args) = op.parse_args()
@@ -65,6 +81,10 @@ if __name__ == "__main__":
     t0 = time.time()
     logger.info("Processing %d binaries ...", len(bins))
     do_multiprocess(
-        extract_features, bins, chunk_size=opts.chunk_size, threshold=opts.threshold
+        extract_features,
+        bins,
+        chunk_size=opts.chunk_size,
+        pool_size=opts.pool_size,
+        threshold=opts.threshold,
     )
     logger.info("done. (%0.3fs)", (time.time() - t0))

@@ -1,0 +1,10 @@
+/home/dongkwan/tiknib/config/openssl/config_openssl_all.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_arm_arm.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_arm_mips.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_arm_x86.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_mips_arm.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_mips_mips.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_mips_x86.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_x86_arm.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_x86_mips.yml
+/home/dongkwan/tiknib/config/openssl/config_openssl_x86_x86.yml
