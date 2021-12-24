@@ -52,3 +52,7 @@ TYPE_MAP = {
 
 def make_number(t):
     return TYPE_MAP[t]
+
+
+def normalize_type(l):
+    return list(map(make_number, l))

@@ -19,6 +19,7 @@ from tiknib.utils import do_multiprocess, parse_fname
 from tiknib.utils import load_func_data
 from tiknib.utils import flatten
 from tiknib.utils import store_cache
+from tiknib.feature.functype import normalize_type
 from get_roc_graph import plot_roc_all
 
 import logging
@@ -108,12 +109,27 @@ def relative_distance(X, feature_indices):
     return 1 - (np.sum(X[:, feature_indices], axis=1)) / len(feature_indices)
 
 
+def jaccard_similarity(a, b):
+    # return (1 - jaccard_index) to adjust the value with relative difference
+    if not a:
+        return 1
+    if not b:
+        return 0
+    s1 = set(a)
+    s2 = set(b)
+    return 1 - (float(len(s1.intersection(s2))) / len(s1.union(s2)))
+
+
 def calc_metric_helper(func_key):
     global g_funcs, g_func_keys, g_dst_options
+    global g_funcs_strs
     func_data = g_funcs[func_key]
+    func_strs_data = g_funcs_strs[func_key]
     option_candidates = list(func_data.keys())
     tp_results = []
     tn_results = []
+    tp_strs_results = []
+    tn_strs_results = []
     target_opts = []
     # Testing all functions takes too much time, so we select one true
     # positive and one true negative function for each function.
@@ -152,8 +168,19 @@ def calc_metric_helper(func_key):
         assert not np.isnan(src_func).any()
         assert not np.isnan(tp_func).any()
         assert not np.isnan(tn_func).any()
-        tp_results.append(relative_difference(src_func, tp_func))
-        tn_results.append(relative_difference(src_func, tn_func))
+        tp_res = relative_difference(src_func, tp_func)
+        tn_res = relative_difference(src_func, tn_func)
+
+        src_func_strs = func_strs_data[src_opt]
+        tp_func_strs = func_strs_data[dst_opt]
+        tn_func_strs = g_funcs_strs[func_tn_key][dst_opt]
+        for idx in range(len(src_func_strs)):
+            cur_idx = len(src_func_strs) * -1 + idx
+            tp_res[cur_idx] = jaccard_similarity(src_func_strs[idx], tp_func_strs[idx])
+            tn_res[cur_idx] = jaccard_similarity(src_func_strs[idx], tn_func_strs[idx])
+
+        tp_results.append(tp_res)
+        tn_results.append(tn_res)
         target_opts.append((src_opt, dst_opt))
     # merge results into one numpy array
     if tp_results:
@@ -164,14 +191,16 @@ def calc_metric_helper(func_key):
 
 
 # inevitably use globals since it is fast.
-def _init_calc(funcs, dst_options):
+def _init_calc(funcs, funcs_strs, dst_options):
     global g_funcs, g_func_keys, g_dst_options
+    global g_funcs_strs
     g_funcs = funcs
+    g_funcs_strs = funcs_strs
     g_func_keys = sorted(funcs.keys())
     g_dst_options = dst_options
 
 
-def calc_metric(funcs, dst_options):
+def calc_metric(funcs, funcs_strs, dst_options):
     # now select for features. this find local optimum value using hill
     # climbing.
     metric_results = do_multiprocess(
@@ -180,7 +209,7 @@ def calc_metric(funcs, dst_options):
         chunk_size=1,
         threshold=1,
         initializer=_init_calc,
-        initargs=(funcs, dst_options),
+        initargs=(funcs, funcs_strs, dst_options),
     )
     func_keys, tp_results, tn_results, target_opts = zip(*metric_results)
     # merge results into one numpy array
@@ -342,9 +371,10 @@ def group_binaries(input_list, options):
 def load_func_features_helper(bin_paths):
     # TODO: handle suffix correctly.
     # returns {function_key: {option_idx: np.array(feature_values)}}
-    global g_options, g_features
+    global g_options, g_features, g_str_features
     func_features = {}
-    num_features = len(g_features)
+    func_str_features = {}
+    num_features = len(g_features) + len(g_str_features)
     optionidx_map = get_optionidx_map(g_options)
     # This counts compiler-generated duplicates (.isra, .part, .cold)
     duplicate_cnt = 0
@@ -367,6 +397,7 @@ def load_func_features_helper(bin_paths):
             option_idx = optionidx_map[option_key]
             if func_key not in func_features:
                 func_features[func_key] = {}
+                func_str_features[func_key] = {}
             # in the below condition by using option_key instead of option_idx,
             # we can filter duplicate functions and only leave the last one.
             # TODO: move this filtering to filter_functions.py
@@ -374,25 +405,39 @@ def load_func_features_helper(bin_paths):
                 func_features[func_key][option_idx] = np.zeros(
                     num_features, dtype=np.float64
                 )
+                func_str_features[func_key][option_idx] = []
             else:
                 duplicate_cnt += 1
+
             for feature_idx, feature in enumerate(g_features):
                 if feature not in func_data["feature"]:
                     continue
                 val = func_data["feature"][feature]
                 func_features[func_key][option_idx][feature_idx] = val
 
-    return func_features, duplicate_cnt
+            for feature_idx, str_feature in enumerate(g_str_features):
+                if str_feature not in func_data:
+                    continue
+                val = func_data[str_feature]
+                if "type" in str_feature:
+                    if not isinstance(val, list):
+                        val = [val]
+                    val = normalize_type(val)
+                    val = list(enumerate(val))
+                func_str_features[func_key][option_idx].append(val)
+
+    return func_features, func_str_features, duplicate_cnt
 
 
 # inevitably use globals since it is fast.
-def _init_load(options, features):
-    global g_options, g_features
+def _init_load(options, features, str_features):
+    global g_options, g_features, g_str_features
     g_options = options
     g_features = features
+    g_str_features = str_features
 
 
-def load_func_features(input_list, options, features):
+def load_func_features(input_list, options, features, str_features):
     grouped_bins, packages = group_binaries(input_list, options)
     func_features_list = do_multiprocess(
         load_func_features_helper,
@@ -400,17 +445,19 @@ def load_func_features(input_list, options, features):
         chunk_size=1,
         threshold=1,
         initializer=_init_load,
-        initargs=(options, features),
+        initargs=(options, features, str_features),
     )
     funcs = {}
+    funcs_strs = {}
     duplicate_cnt = 0
-    for func_features, dup_cnt in func_features_list:
+    for func_features, func_types, dup_cnt in func_features_list:
         funcs.update(func_features)
+        funcs_strs.update(func_types)
         duplicate_cnt += dup_cnt
     num_funcs = sum([len(x) for x in funcs.values()])
     logger.info("%d functions loaded.", num_funcs)
     logger.info("%d compiler-generated duplicates.", duplicate_cnt)
-    return funcs
+    return funcs, funcs_strs
 
 
 def do_test(opts):
@@ -435,11 +482,15 @@ def do_test(opts):
 
     options, dst_options = load_options(config)
     features = sorted(config["features"])
-    logger.info("%d features", len(features))
+    if "str_features" in config:
+        str_features = sorted(config["str_features"])
+    else:
+        str_features = []
+    logger.info("%d features, %d str features", len(features), len(str_features))
 
     t0 = time.time()
     logger.info("Feature loading ...")
-    funcs = load_func_features(opts.input_list, options, features)
+    funcs, funcs_strs = load_func_features(opts.input_list, options, features, str_features)
     num_funcs = sum([len(x) for x in funcs.values()])
     logger.info(
         "%d functions (%d unique).", num_funcs, len(funcs)
@@ -482,8 +533,10 @@ def do_test(opts):
             train_func_keys = train_func_keys[:idx+1]
 
         train_funcs = {key: funcs[key] for key in train_func_keys}
+        train_funcs_strs = {key: funcs_strs[key] for key in train_func_keys}
         test_func_keys = [func_keys[i] for i in test_func_keys]
         test_funcs = {key: funcs[key] for key in test_func_keys}
+        test_funcs_strs = {key: funcs_strs[key] for key in test_func_keys}
         num_train_funcs = sum([len(x) for x in train_funcs.values()])
         num_test_funcs = sum([len(x) for x in test_funcs.values()])
         logging.info(
@@ -498,22 +551,23 @@ def do_test(opts):
         t0 = time.time()
         logger.info("selecting train funcs ...")
         train_keys, train_tps, train_tns, train_opts = calc_metric(
-            train_funcs, dst_options
+            train_funcs, train_funcs_strs, dst_options
         )
         logger.info("selecting train funcs done. (%0.3fs)", time.time() - t0)
 
         logger.info("selecting features ...")
+        all_features = features + str_features
         t0 = time.time()
         if config["do_train"]:
             # start training to select features
-            selected_feature_indices = train(train_tps, train_tns, features)
+            selected_feature_indices = train(train_tps, train_tns, all_features)
         else:
             # use given pre-defined featureset by commandline option
             logger.info("using pre-defined features ...")
-            selected_feature_indices = list(range(features))
+            selected_feature_indices = list(range(all_features))
         train_time = time.time() - t0
 
-        selected_features = [features[x] for x in selected_feature_indices]
+        selected_features = [all_features[x] for x in selected_feature_indices]
         train_roc, train_ap = calc_results(
             train_tps, train_tns, selected_feature_indices
         )
@@ -528,7 +582,7 @@ def do_test(opts):
         # ===================== testing ======================
         t0 = time.time()
         logger.info("testing ...")
-        test_keys, test_tps, test_tns, test_opts = calc_metric(test_funcs, dst_options)
+        test_keys, test_tps, test_tns, test_opts = calc_metric(test_funcs, test_funcs_strs, dst_options)
         test_roc, test_ap = calc_results(test_tps, test_tns, selected_feature_indices)
         test_time = time.time() - t0
         logger.info(
@@ -543,7 +597,7 @@ def do_test(opts):
 
         # analyze features that fits our analysis metric
         data = [
-            (features, selected_feature_indices),
+            (all_features, selected_feature_indices),
             (train_func_keys, train_tps, train_tns, train_opts, train_roc,
              train_ap, train_time),
             (test_func_keys, test_tps, test_tns, test_opts, test_roc, test_ap,

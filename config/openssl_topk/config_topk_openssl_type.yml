@@ -79,9 +79,13 @@ features:
   - inst_num_cndctransfer
   - inst_num_ctransfer
   - inst_num_misc
-  - data_mul_arg_type
   - data_num_args
-  - data_ret_type
+#  - data_mul_arg_type
+#  - data_ret_type
+
+str_features:
+  - abstract_args_type
+  - abstract_ret_type
 
 src_options:
   opti:
