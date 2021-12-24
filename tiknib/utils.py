@@ -49,7 +49,7 @@ def parse_source_path(src_path):
     if not matches:
         return ""
     src_file = matches.groups()[-1]
-    src_file = src_file[src_file.index('/')+1:]
+    src_file = src_file[src_file.index("/") + 1 :]
     return os.path.relpath(src_file)
 
 
@@ -310,6 +310,11 @@ def wait_auto_analysis():
 def init_idc():
     load_plugins()
     wait_auto_analysis()
+
+
+# Belows are functions for processing function data
+def get_func_data_fname(bin_name, suffix=""):
+    return bin_name + suffix + ".pickle"
 
 
 # Belows are functions for processing function data

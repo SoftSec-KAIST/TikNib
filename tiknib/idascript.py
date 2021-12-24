@@ -20,6 +20,9 @@ class IDAScript:
         idapath="/home/dongkwan/.tools/ida-6.95",
         idc=None,
         idcargs="",
+        chunk_size=1,
+        threshold=1,
+        timeout=0,
         force=False,
         log=False,
         stdout=False,
@@ -28,6 +31,9 @@ class IDAScript:
         self.idapath = idapath
         self.idc = idc
         self.idcargs = idcargs
+        self.chunk_size = chunk_size
+        self.threshold = threshold
+        self.timeout = timeout
         self.force = force
         self.log = log
         self.stdout = stdout
@@ -79,9 +85,11 @@ class IDAScript:
             return input_fname, None
 
         arch = get_file_type(input_fname)
-        if arch is None:
-            logger.warn("Skip Unknown file type: %s" % input_fname)
-            return input_fname, False
+        # One may want to check and skip unknown architectures.
+        # TODO: move this architecture checking in the IDA script file.
+        # if arch is None:
+        #    #logger.warn("Skip Unknown file type: %s" % input_fname)
+        #    #return input_fname, False
 
         if not self.force and self.is_done(input_fname):
             return input_fname, True
@@ -92,7 +100,8 @@ class IDAScript:
         idc_args.extend(self.idcargs)
         idc_args = " ".join(idc_args)
 
-        if arch.find("_32") != -1:
+        # If we cannot get the architecture, consider it as 32-bit one.
+        if not arch or arch.find("_32") != -1:
             ida = self.idapath + "/idal"
         else:
             ida = self.idapath + "/idal64"
@@ -123,6 +132,7 @@ class IDAScript:
 
     def get_elf_files(self, input_path):
         if os.path.isdir(input_path):
+            # TODO: This is deprecated.
             # If a directory is given, we need to search all ELFs. Note that
             # using system command 'find' is much faster then internal Python
             # scripts when processing a large amount of files.
@@ -145,6 +155,12 @@ class IDAScript:
 
         # IDA's processing time for each binary is significantly different.
         # Thus, it is better to set the chunk size to 1.
-        res = do_multiprocess(self.run_helper, elfs, chunk_size=1, threshold=1)
+        res = do_multiprocess(
+            self.run_helper,
+            elfs,
+            chunk_size=self.chunk_size,
+            threshold=self.threshold,
+            timeout=self.timeout,
+        )
         logger.info("done in: (%0.3fs)" % (time.time() - t0))
         return res
