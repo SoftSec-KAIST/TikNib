@@ -355,6 +355,14 @@ Avg. # of Train Pairs: 155437
 Avg. # of Test Pairs: 17270
 ```
 
+# Use Case
+One may use BCSA for several tasks such as malware detectio, plagiarism
+detection, authorship identification, or vulnerability discovery.
+
+You can take a look at [this repo](https://github.com/SysSec-KAIST/FirmKit)
+for an example of IoT vulnerability discovery.
+
+
 # Issues
 
 ### Tested environment
