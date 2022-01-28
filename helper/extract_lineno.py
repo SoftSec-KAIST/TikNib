@@ -8,6 +8,7 @@ from tiknib.debug.lineno import fetch_lineno
 from tiknib.utils import do_multiprocess
 from tiknib.utils import load_func_data, store_func_data
 from tiknib.utils import parse_source_path
+from config.path_variables import *
 
 import logging
 import coloredlogs
@@ -31,6 +32,9 @@ def extract_func_lineno(bin_name):
         func["src_path"] = line_map[func_addr][0]
         func["src_file"] = parse_source_path(func["src_path"])
         func["src_line"] = line_map[func_addr][1]
+        # Fix ase18 source paths coreutils-6.7-6.5 / coreutils-6.7-6.7
+        if 'coreutils-6.7-6.5' in func['src_path']:
+            func['src_path'] = func['src_path'].replace('6.7-6.5', '6.5')
     store_func_data(bin_name, func_data_list)
     return
 
@@ -84,8 +88,8 @@ if __name__ == "__main__":
 
         from tiknib.idascript import IDAScript
         idascript = IDAScript(
-            idapath="/home/dongkwan/.tools/ida-6.95",
-            idc="tiknib/ida/fetch_funcdata.py",
+            idapath=IDA_PATH,
+            idc=IDA_FETCH_FUNCDATA,
             force=True,
             log=True,
         )

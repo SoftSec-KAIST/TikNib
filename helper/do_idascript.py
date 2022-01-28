@@ -5,6 +5,7 @@ from optparse import OptionParser
 sys.path.insert(0, os.path.join(sys.path[0], ".."))
 from tiknib.idascript import IDAScript
 from tiknib.utils import do_multiprocess
+from config.path_variables import IDA_PATH, IDA_FETCH_FUNCDATA
 
 if __name__ == "__main__":
     op = OptionParser()
@@ -16,7 +17,7 @@ if __name__ == "__main__":
         action="store",
         type=str,
         dest="idapath",
-        default="/home/dongkwan/.tools/ida-6.95",
+        default=IDA_PATH,
         help="IDA directory path",
     )
     op.add_option(
@@ -24,7 +25,7 @@ if __name__ == "__main__":
         action="store",
         type=str,
         dest="idc",
-        default="tiknib/ida/fetch_funcdata.py",
+        default=IDA_FETCH_FUNCDATA,
         help="IDA script file",
     )
     op.add_option(

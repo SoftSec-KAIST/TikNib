@@ -7,7 +7,6 @@ import hashlib
 import itertools
 from hashlib import sha1
 from subprocess import Popen, PIPE
-from statistics import mean as stat_mean
 
 import multiprocessing
 from multiprocessing import Pool, cpu_count
@@ -25,27 +24,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-RESTR = (
+RE_PATTERN = (
     "(.*)_"
-    + "(gcc-4.9.4|gcc-5.5.0|gcc-6.4.0|gcc-7.3.0|gcc-8.2.0|"
-    + "clang-4.0|clang-5.0|clang-6.0|clang-7.0|"
-    + "clang-obfus-fla|clang-obfus-sub|clang-obfus-bcf|"
-    + "clang-obfus-all|clang-obfus-all-2|"
+    + "(gcc-[.0-9]+|clang-[.0-9]+|"
+    + "clang-obfus-[-a-z2]+|"
     + "gcc|clang)_"
-    + "(x86_32|x86_64|arm_32|arm_64|mips_32|mips_64|mipseb_32|mipseb_64)_"
+    + "((?:x86|arm|mips|mipseb|ppc)_(?:32|64))_"
     + "(O0|O1|O2|O3|Os)_"
     + "(.*)"
 )
+RESTR = re.compile(RE_PATTERN)
 
 # matches => package, compiler, arch, opti, bin_name
 def parse_fname(bin_path):
     base_name = os.path.basename(bin_path)
-    matches = re.search(RESTR, base_name).groups()
+    matches = RESTR.search(base_name).groups()
     return matches
 
 
 def parse_source_path(src_path):
-    matches = re.search(RESTR, src_path)
+    matches = RESTR.search(src_path)
     if not matches:
         return ""
     src_file = matches.groups()[-1]
@@ -55,6 +53,7 @@ def parse_source_path(src_path):
 
 # statistics mean function cannot handle the empty list
 def mean(l):
+    from statistics import mean as stat_mean
     return stat_mean(l or [0])
 
 

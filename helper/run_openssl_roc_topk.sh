@@ -1,6 +1,8 @@
 #!/bin/bash
 set -x
 
+source config/path_variables.py
+
 declare -a input_list=(
   "config/openssl_topk/config_topk_openssl.yml"
 )
@@ -9,7 +11,7 @@ do
   # this is feature selecting for openssl, so we use gnu normal dataset
   echo "Processing ${f} ..."
   python helper/test_topk.py \
-    --input_list "/home/dongkwan/binkit-dataset/ase4_debug_openssl.txt" \
+    --input_list "${BINKIT_DATASET}/ase4_debug_openssl.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 

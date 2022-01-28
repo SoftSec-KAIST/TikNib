@@ -1,6 +1,8 @@
 #!/bin/bash
 set -x
 
+source config/path_variables.py
+
 declare -a input_list=(
   "config/gnu_lto/config_gnu_normal_others_lto_clang4.yml"
   "config/gnu_lto/config_gnu_normal_others_lto_clang5.yml"
@@ -16,7 +18,7 @@ for f in "${input_list[@]}"
 do
   echo "Processing ${f} ..."
   python helper/test_roc.py \
-    --input_list "/home/dongkwan/binkit-dataset/test_lto.txt" \
+    --input_list "${BINKIT_DATASET}/test_lto.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 done
@@ -30,7 +32,7 @@ for f in "${input_list[@]}"
 do
   echo "Processing ${f} ..."
   python helper/test_roc.py \
-    --input_list "/home/dongkwan/binkit-dataset/test_noinline.txt" \
+    --input_list "${BINKIT_DATASET}/test_noinline.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 done

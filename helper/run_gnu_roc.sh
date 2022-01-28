@@ -1,6 +1,8 @@
 #!/bin/bash
 set -x
 
+source config/path_variables.py
+
 declare -a input_list=(
   "config/gnu/config_gnu_normal_all.yml"
 
@@ -26,11 +28,12 @@ for f in "${input_list[@]}"
 do
   echo "Processing ${f} ..."
   python helper/test_roc.py \
-    --input_list "/home/dongkwan/binkit-dataset/gnu_debug.txt" \
+    --input_list "${BINKIT_DATASET}/gnu_debug.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 done
 
+exit 0
 
 
 declare -a input_list=(
@@ -42,7 +45,7 @@ for f in "${input_list[@]}"
 do
   echo "Processing ${f} ..."
   python helper/test_roc.py \
-    --input_list "/home/dongkwan/binkit-dataset/test_size.txt" \
+    --input_list "${BINKIT_DATASET}/test_size.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 done
@@ -54,7 +57,7 @@ for f in "${input_list[@]}"
 do
   echo "Processing ${f} ..."
   python helper/test_roc.py \
-    --input_list "/home/dongkwan/binkit-dataset/test_lto.txt" \
+    --input_list "${BINKIT_DATASET}/test_lto.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 done
@@ -67,7 +70,7 @@ for f in "${input_list[@]}"
 do
   echo "Processing ${f} ..."
   python helper/test_roc.py \
-    --input_list "/home/dongkwan/binkit-dataset/test_noinline.txt" \
+    --input_list "${BINKIT_DATASET}/test_noinline.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 done
@@ -79,7 +82,7 @@ for f in "${input_list[@]}"
 do
   echo "Processing ${f} ..."
   python helper/test_roc.py \
-    --input_list "/home/dongkwan/binkit-dataset/test_pie.txt" \
+    --input_list "${BINKIT_DATASET}/test_pie.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 done
@@ -96,7 +99,7 @@ for f in "${input_list[@]}"
 do
   echo "Processing ${f} ..."
   python helper/test_roc.py \
-    --input_list "/home/dongkwan/binkit-dataset/test_obfus.txt" \
+    --input_list "${BINKIT_DATASET}/test_obfus.txt" \
     --train_funcs_limit 200000 \
     --config "${f}"
 done

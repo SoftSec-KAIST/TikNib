@@ -6,6 +6,7 @@ from pathlib import Path
 from subprocess import run, PIPE
 
 from tiknib.utils import system, get_file_type, do_multiprocess
+from config.path_variables import IDA_PATH
 
 import logging
 import coloredlogs
@@ -17,7 +18,7 @@ coloredlogs.install(level=logging.INFO, logger=logger)
 class IDAScript:
     def __init__(
         self,
-        idapath="/home/dongkwan/.tools/ida-6.95",
+        idapath=IDA_PATH,
         idc=None,
         idcargs="",
         chunk_size=1,
@@ -111,7 +112,7 @@ class IDAScript:
             ida = ida.replace("idal", "idat")
 
         # Setup command line arguments
-        path = [ida, "-A", '-S"{}"'.format(idc_args)]
+        path = [ida, '-A', '-P+', '-S"{}"'.format(idc_args)]
         if self.log or self.stdout:
             fd, tmp_fname = tempfile.mkstemp()
             os.close(fd)

@@ -111,7 +111,10 @@ confirm their equivalence. Based on these criteria we conducted several steps to
 build ground truth and clean the datasets. For more details, please check [our
 paper](https://arxiv.org/abs/2011.10749).
 
-### 1. Run IDA Pro to extract preliminary data for each functions.
+### 1. Configure path variables for IDA Pro and this repository (`config/path_variables.py`).
+
+
+### 2. Run IDA Pro to extract preliminary data for each functions.
 
 **This step takes the most time.**
 
@@ -145,7 +148,7 @@ Additionally, **you can use this script to run any idascript for numerous
 binaries in parallel.**
 
 
-### 2. Extract source file names and line numbers to build ground truth.
+### 3. Extract source file names and line numbers to build ground truth.
 This extracts source file name and line number by parsing the debugging
 information in a given binary. The binary must have been compiled with
 the `-g` option.
@@ -156,7 +159,7 @@ $ python helper/extract_lineno.py \
     --threshold 1
 ```
 
-### 3. Filter functions.
+### 4. Filter functions.
 This filters functions by checking the source file name and line number.
 This removes compiler intrinsic functions and duplicate functions spread
 over multiple binaries within the same package.
@@ -167,7 +170,7 @@ $ python helper/filter_functions.py \
     --threshold 1
 ```
 
-### (Optional) 4. Counting the number of functions.
+### (Optional) 5. Counting the number of functions.
 This counts the number of functions and generates a graph of that function
 on the same path of `input_list`. This also prints the numbers separated
 by `','`. In the below example, a pdf file containing the graph will be

@@ -6,6 +6,7 @@ import re
 import numpy as np
 
 from optparse import OptionParser
+from tabulate import tabulate
 
 sys.path.insert(0, os.path.join(sys.path[0], ".."))
 from tiknib.utils import load_cache
@@ -14,6 +15,12 @@ import pprint as pp
 import logging, coloredlogs
 rootLogger = logging.getLogger()
 rootLogger.setLevel(logging.INFO)
+
+def config_rename(config_fname):
+    # TODO: clean up the key name (config_fname to something neat).
+    config_key = os.path.basename(config_fname)
+    config_key = re.search("config_(.+).yml", config_key).groups()[0]
+    return config_key
 
 def calc_tptn_gap(tps, tns):
     return np.mean(np.abs(tps - tns), axis=0)
@@ -43,9 +50,7 @@ def load_results(opts):
         # select the latest one
         cache_dir = sorted(glob.glob("{}/*".format(outdir)))[-1]
 
-        # TODO: clean up the key name (config_fname to something neat).
-        config_key = os.path.basename(config_fname)
-        config_key = re.search("config_(.+).yml", config_key).groups()[0]
+        config_key = config_rename(config_fname)
         all_data[config_key] = []
         features_inter = set()
         for idx in range(10):
@@ -65,9 +70,7 @@ def load_results(opts):
 
     # Now fetch real data
     for config_idx, config_fname in enumerate(config_fnames):
-        # TODO: clean up the key name (config_fname to something neat).
-        config_key = os.path.basename(config_fname)
-        config_key = re.search("config_(.+).yml", config_key).groups()[0]
+        config_key = config_rename(config_fname)
 
         rocs = []
         aps = []
@@ -154,18 +157,22 @@ def get_results(opts):
     config_fnames, total_data, features, features_union = load_results(opts)
 
     # first rows
-    print(','.join(map(lambda x:
+    row1 = ["# Train pairs (10^6)"]
+    row1.extend(list(map(lambda x:
                        '%.2f' % (x[0] / 1000000.0)
                        if x[0] > 100000
                        else '%.2fF' % (x[0] / 10000), total_data[0])))
-    print(','.join(map(lambda x:
+    row2 = ["# Test pairs (10^6)"]
+    row2.extend(list(map(lambda x:
                        '%.2f' % (x[1] / 1000000.0)
                        if x[1] > 100000
                        else '%.2fF' % (x[1] / 10000), total_data[0])))
 
     # second rows
-    print(','.join(map(lambda x: '%.1f' % (x[0]), total_data[1])))
-    print(','.join(map(lambda x: '%.1f' % (x[1]), total_data[1])))
+    row3 = ["Train time"] + ['%.1f' % x[0] for x in total_data[1]]
+    row4 = ["Test time"] + ['%.1f' % x[1] for x in total_data[1]]
+
+    table = [row1, row2, row3, row4]
 
     # third rows
     for idx in features_union:
@@ -177,22 +184,30 @@ def get_results(opts):
                 s.append('%.2f-' % (data[feature][0]))
             else:
                 s.append('%.2f' % (data[feature][0]))
-        print(','.join(s))
+        table.append(s)
 
     # fourth row
-    print(','.join(map(lambda x: '%.1f' % (x), total_data[3])))
+    row = ["Avg # features"] + ['%.1f' % x for x in total_data[3]]
+    table.append(row)
 
     # fifth rows
-    print(','.join(map(lambda x: '%.2f' % (x[0]), total_data[4])))
-    print(','.join(map(lambda x: '%.2f' % (x[1]), total_data[4])))
+    row = ["Mean tptn_gap"] + ['%.2f' % x[0] for x in total_data[4]]
+    table.append(row)
+    row = ["Std tptn_gap"] + ['%.2f' % x[1] for x in total_data[4]]
+    table.append(row)
 
     # sixth rows
-    print(','.join(map(lambda x: '%.2f' % (x[0]), total_data[5])))
-    print(','.join(map(lambda x: '%.2f' % (x[1]), total_data[5])))
+    row = ["ROC AUC"] + ['%.2f' % x[0] for x in total_data[5]]
+    table.append(row)
+    row = ["Std. of  ROC"] + ['%.2f' % x[1] for x in total_data[5]]
+    table.append(row)
 
     # seventh rows
-    print(','.join(map(lambda x: '%.2f' % (x[0]), total_data[6])))
-    print(','.join(map(lambda x: '%.2f' % (x[1]), total_data[6])))
+    row = ["Avg Prec (AP)"] + ['%.2f' % x[0] for x in total_data[6]]
+    table.append(row)
+    row = ["Std of AP"] + ['%.2f' % x[1] for x in total_data[6]]
+    table.append(row)
+    print(tabulate(table, floatfmt=".2f"))
 
 
 if __name__ == "__main__":

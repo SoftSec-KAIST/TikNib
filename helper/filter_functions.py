@@ -39,7 +39,7 @@ def filter_funcs(bin_path):
     #        print(func['name'], func['src_file'], func['src_line'])
 
     # filter functions by package name (remove functions inserted by compilers)
-    funcs = list(filter(lambda x: x['package'] in x['src_path'], funcs))
+    funcs = list(filter(lambda x: pack_name in x['src_path'], funcs))
     num_pack_funcs = len(funcs)
 
     if num_pack_funcs == 0:
