@@ -215,6 +215,10 @@ def get_arch(arch):
         ret_arch = "x86_64"
     elif arch == "metapc_32_little":
         ret_arch = "x86_32"
+    elif arch == "PPC_32_big":
+        ret_arch = "ppc_32"
+    elif arch == "PPC_64_big":
+        ret_arch = "ppc_64"
     elif arch in [
         "arm_32",
         "arm_64",
@@ -224,6 +228,8 @@ def get_arch(arch):
         "mipseb_64",
         "x86_32",
         "x86_64",
+        "ppc_32",
+        "ppc_64",
     ]:
         ret_arch = arch
     else:
