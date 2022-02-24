@@ -1,3 +1,4 @@
+from tiknib.feature.asm_ppc import PPC_GRP_MAP
 # ==================== x86 32 =============================================
 # data transfer
 X86_GRP_DTRANSFER = [
@@ -1745,6 +1746,7 @@ MIPS_GRP_COND_CTRANSFER = [
     "BNEL",
 ]
 
+
 # ============================================
 # Below part creates dictionary which groups instructions
 X86_GRP_MAP = {
@@ -1905,7 +1907,8 @@ def _init_groups():
     arm = _init_inst_groups("ARM_INS_", capstone.arm, ARM_GRP_MAP)
     arm64 = _init_inst_groups("ARM64_INS_", capstone.arm64, ARM64_GRP_MAP)
     mips = _init_inst_groups("MIPS_INS_", capstone.mips, MIPS_GRP_MAP)
-    return x86, arm, arm64, mips
+    ppc = _init_inst_groups("PPC_INS_", capstone.ppc, PPC_GRP_MAP)
+    return x86, arm, arm64, mips, ppc
 
 
-X86_INST_MAP, ARM_INST_MAP, ARM64_INST_MAP, MIPS_INST_MAP = _init_groups()
+X86_INST_MAP, ARM_INST_MAP, ARM64_INST_MAP, MIPS_INST_MAP, PPC_INST_MAP = _init_groups()

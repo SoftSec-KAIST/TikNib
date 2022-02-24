@@ -4,6 +4,7 @@ from capstone.arm import *
 
 from tiknib.feature.asm_const import X86_INST_MAP, MIPS_INST_MAP
 from tiknib.feature.asm_const import ARM_INST_MAP, ARM64_INST_MAP
+from tiknib.feature.asm_const import PPC_INST_MAP
 from tiknib.feature.asm_const import GRP_NO_MAP, GRP_NAME_MAP
 from tiknib.utils import get_arch, get_bytes
 
@@ -68,6 +69,13 @@ def init_mapping(arch):
         elif arch == "mipseb_64":
             md = Cs(CS_ARCH_MIPS, CS_MODE_MIPS64 + CS_MODE_BIG_ENDIAN)
         inst_map = MIPS_INST_MAP
+
+    elif arch.startswith("ppc"):
+        if arch == "ppc_32":
+            md = Cs(CS_ARCH_PPC, CS_MODE_32 + CS_MODE_BIG_ENDIAN)
+        elif arch == "ppc_64":
+            md = Cs(CS_ARCH_PPC, CS_MODE_64 + CS_MODE_BIG_ENDIAN)
+        inst_map = PPC_INST_MAP
 
     elif arch.startswith("x86"):
         if arch == "x86_32":
