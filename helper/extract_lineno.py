@@ -8,7 +8,7 @@ from tiknib.debug.lineno import fetch_lineno
 from tiknib.utils import do_multiprocess
 from tiknib.utils import load_func_data, store_func_data
 from tiknib.utils import parse_source_path
-from config.path_variables import *
+from config.path_variables import IDA_PATH, IDA_FETCH_FUNCDATA
 
 import logging
 import coloredlogs

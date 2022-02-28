@@ -111,7 +111,9 @@ confirm their equivalence. Based on these criteria we conducted several steps to
 build ground truth and clean the datasets. For more details, please check [our
 paper](https://arxiv.org/abs/2011.10749).
 
-### 1. Configure path variables for IDA Pro and this repository (`config/path_variables.py`).
+### 1. Configure path variables for IDA Pro and this repository.
+
+Configure path variables for your environment at `config/path_variables.py`.
 
 
 ### 2. Run IDA Pro to extract preliminary data for each functions.
@@ -138,7 +140,7 @@ For IDA Pro v7.5, use `tiknib/ida/fetch_funcdata_v7.5.py`.
 
 ```bash
 $ python helper/do_idascript.py \
-    --idapath "/home/dongkwan/.tools/ida-v7.5" \
+    --idapath "/home/dongkwan/.tools/ida-7.5" \
     --idc "tiknib/ida/fetch_funcdata_v7.5.py" \
     --input_list "example/input_list_find.txt" \
     --log
