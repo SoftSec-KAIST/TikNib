@@ -45,7 +45,9 @@ def get_strings(start_addr, end_addr):
         for ref in refs:
             t = idc.get_str_type(ref)
             if isinstance(t, int) and t >= 0:
-                s = idc.get_strlit_contents(ref).decode('latin-1')
+                s = idc.get_strlit_contents(ref)
+                if isinstance(s, bytes):
+                    s = s.decode()
                 if s and isprintable(s):
                     strings.append([h, s, t, ref])
     return strings
